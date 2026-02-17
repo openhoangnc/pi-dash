@@ -432,6 +432,29 @@ body {
   height: 280px;
 }
 
+.history-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.metric-chart-wrapper {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  transition: border-color 0.2s;
+}
+
+.metric-chart-wrapper:hover {
+  border-color: var(--border-hover);
+}
+
+.metric-chart {
+  width: 100%;
+  height: 220px;
+}
+
 .history-loading,
 .history-empty {
   text-align: center;
@@ -481,6 +504,12 @@ body {
   }
   .history-chart {
     height: 220px;
+  }
+  .history-charts-grid {
+    grid-template-columns: 1fr;
+  }
+  .metric-chart {
+    height: 180px;
   }
   .dashboard-header {
     padding: 4px 0 12px;

@@ -3,7 +3,7 @@ import { useWebSocket } from "../hooks/useWebSocket";
 import { useHistory } from "../hooks/useHistory";
 import { StatCard } from "../components/StatCard";
 import { TempCard } from "../components/TempCard";
-import { HistoryChart } from "../components/HistoryChart";
+import { HistoryCharts } from "../components/HistoryCharts";
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -84,6 +84,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ token, onLogout }) => {
       </header>
 
       <div className="stats-grid">
+        <TempCard
+          sensors={stats.temperatures}
+          recentTemps={new Map(recentTempsRef.current)}
+        />
         <StatCard
           title="CPU"
           icon="⚡"
@@ -111,10 +115,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ token, onLogout }) => {
           subtitle={`${formatBytes(stats.disk.used_bytes)} / ${formatBytes(stats.disk.total_bytes)} · ${formatBytes(stats.disk.available_bytes)} avail`}
           recentData={diskRecent}
         />
-        <TempCard
-          sensors={stats.temperatures}
-          recentTemps={new Map(recentTempsRef.current)}
-        />
       </div>
 
       <div className="history-section">
@@ -137,7 +137,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ token, onLogout }) => {
         </div>
         {historyLoading && <div className="history-loading">Loading...</div>}
         {historyData && historyData.points.length > 0 && (
-          <HistoryChart data={historyData.points} range={historyRange} />
+          <HistoryCharts data={historyData.points} range={historyRange} />
         )}
         {historyData && historyData.points.length === 0 && (
           <div className="history-empty">
