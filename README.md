@@ -29,7 +29,7 @@ docker run -d \
   -p 3300:3300 \
   -e PI_DASH_USER=admin \
   -e PI_DASH_PASS=changeme \
-  ghcr.io/hoangnc/pi-dash:latest
+  ghcr.io/openhoangnc/pi-dash:latest
 ```
 
 Then open `http://<your-pi-ip>:3300`
