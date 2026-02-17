@@ -1,0 +1,16 @@
+services:
+  pi-dash:
+    image: ghcr.io/hoangnc/pi-dash:latest
+    container_name: pi-dash
+    ports:
+      - "3300:3300"
+    environment:
+      - PI_DASH_USER=admin
+      - PI_DASH_PASS=changeme
+      - PI_DASH_PORT=3300
+    restart: unless-stopped
+    # Required to read host system stats
+    privileged: true
+    volumes:
+      - /sys:/sys:ro
+      - /proc:/proc:ro

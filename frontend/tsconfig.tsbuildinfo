@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/types.ts","./src/components/historychart.tsx","./src/components/statcard.tsx","./src/components/tempcard.tsx","./src/hooks/usehistory.ts","./src/hooks/usewebsocket.ts","./src/pages/dashboard.tsx","./src/pages/login.tsx"],"version":"5.7.3"}
