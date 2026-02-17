@@ -39,7 +39,7 @@ Then open `http://<your-pi-ip>:3300`
 ```yaml
 services:
   pi-dash:
-    image: ghcr.io/hoangnc/pi-dash:latest
+    image: ghcr.io/openhoangnc/pi-dash:latest
     container_name: pi-dash
     ports:
       - "3300:3300"
