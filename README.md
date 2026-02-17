@@ -6,6 +6,9 @@ Real-time server monitoring dashboard for Raspberry Pi, Orange Pi, and other SBC
 ![React](https://img.shields.io/badge/frontend-React-blue)
 ![Docker](https://img.shields.io/badge/deploy-Docker-2496ED)
 
+![Screenshot](screenshot.png)
+
+
 ## Features
 
 - **Live monitoring** — CPU, Memory, Disk, Temperature streamed via WebSocket (1s updates)
