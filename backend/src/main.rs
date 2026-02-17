@@ -84,12 +84,37 @@ async fn main() -> std::io::Result<()> {
     let bg_tx = ws_tx.clone();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1));
+        let mut ticks = 0;
+        let mut delay_secs = 1;
+
         loop {
             interval.tick().await;
-            let stats = bg_collector.lock().collect();
-            bg_history.push(&stats);
-            if let Ok(json) = serde_json::to_string(&stats) {
-                let _ = bg_tx.send(json);
+            ticks += 1;
+
+            let active = bg_tx.receiver_count() > 0;
+            if active {
+                delay_secs = 1;
+            }
+
+            if ticks >= delay_secs {
+                let stats = bg_collector.lock().collect();
+                bg_history.push(&stats);
+                if let Ok(json) = serde_json::to_string(&stats) {
+                    let _ = bg_tx.send(json);
+                }
+
+                ticks = 0;
+
+                if active {
+                    delay_secs = 1;
+                } else {
+                    delay_secs = match delay_secs {
+                        1 => 5,
+                        5 => 10,
+                        10 => 30,
+                        _ => 60,
+                    };
+                }
             }
         }
     });
