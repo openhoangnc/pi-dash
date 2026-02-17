@@ -350,9 +350,9 @@ body {
 .temp-label {
   color: var(--text-secondary);
   overflow: hidden;
-  text-overflow: ellipsis;
+  /* text-overflow: ellipsis; */
   white-space: nowrap;
-  max-width: 100px;
+  max-width: 160px;
 }
 
 .temp-value {

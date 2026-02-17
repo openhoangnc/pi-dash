@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useMemo } from "react";
 import * as echarts from "echarts";
 import { TemperatureSensor } from "../types";
 
@@ -7,12 +7,56 @@ interface TempChartProps {
   recentTemps?: Map<string, number[]>;
 }
 
+interface GroupedSensor {
+  label: string;
+  temperature: number;
+  sensors: TemperatureSensor[];
+}
+
 export const TempCard: React.FC<TempChartProps> = ({
   sensors,
   recentTemps,
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts>(null);
+
+  // Group sensors and compute max values
+  const groupedSensors = useMemo(() => {
+    const groups = new Map<string, TemperatureSensor[]>();
+
+    sensors.forEach((sensor) => {
+      const label = sensor.label.toLowerCase();
+
+      // Check if it's SOC-related (npu, core, gpu soc, center)
+      if (
+        label.includes("npu") ||
+        label.includes("core") ||
+        label.includes("gpu") ||
+        label.includes("soc") ||
+        label.includes("center")
+      ) {
+        const existing = groups.get("SOC") || [];
+        groups.set("SOC", [...existing, sensor]);
+      } else {
+        // Group by sensor type for others
+        const existing = groups.get(sensor.sensor_type) || [];
+        groups.set(sensor.sensor_type, [...existing, sensor]);
+      }
+    });
+
+    // Convert to array with max temperature
+    const result: GroupedSensor[] = [];
+    groups.forEach((sensorList, groupName) => {
+      const maxTemp = Math.max(...sensorList.map((s) => s.temperature));
+      result.push({
+        label: groupName,
+        temperature: maxTemp,
+        sensors: sensorList,
+      });
+    });
+
+    return result;
+  }, [sensors]);
 
   useEffect(() => {
     if (!chartRef.current || sensors.length === 0) return;
@@ -32,6 +76,30 @@ export const TempCard: React.FC<TempChartProps> = ({
       "#64748b",
     ];
 
+    // Compute grouped history data
+    const groupedHistoryData = groupedSensors.map((group) => {
+      if (!recentTemps || recentTemps.size === 0) {
+        return [group.temperature];
+      }
+
+      // Get max length of history across all sensors in this group
+      const histories = group.sensors.map(
+        (s) => recentTemps.get(s.label) || [],
+      );
+      const maxLength = Math.max(...histories.map((h) => h.length), 1);
+
+      // For each time point, get the max temp across all sensors in the group
+      const groupHistory: number[] = [];
+      for (let i = 0; i < maxLength; i++) {
+        const temps = histories.map((h) => h[i]).filter((t) => t !== undefined);
+        groupHistory.push(
+          temps.length > 0 ? Math.max(...temps) : group.temperature,
+        );
+      }
+
+      return groupHistory;
+    });
+
     chart.setOption(
       {
         backgroundColor: "transparent",
@@ -49,7 +117,7 @@ export const TempCard: React.FC<TempChartProps> = ({
           },
         },
         legend: {
-          data: sensors.map((s) => s.label),
+          data: groupedSensors.map((g) => g.label),
           textStyle: { color: "#aaa", fontSize: 10 },
           top: 0,
           type: "scroll",
@@ -67,10 +135,10 @@ export const TempCard: React.FC<TempChartProps> = ({
           axisLabel: { color: "#888", fontSize: 10, formatter: "{value}°" },
           splitLine: { lineStyle: { color: "#222" } },
         },
-        series: sensors.map((sensor, i) => ({
-          name: sensor.label,
+        series: groupedSensors.map((group, i) => ({
+          name: group.label,
           type: "line",
-          data: recentTemps?.get(sensor.label) || [sensor.temperature],
+          data: groupedHistoryData[i],
           smooth: true,
           symbol: "none",
           lineStyle: { width: 1.5, color: colors[i % colors.length] },
@@ -78,7 +146,7 @@ export const TempCard: React.FC<TempChartProps> = ({
       },
       true,
     );
-  }, [sensors, recentTemps]);
+  }, [sensors, recentTemps, groupedSensors]);
 
   useEffect(() => {
     const handleResize = () => chartInstance.current?.resize();
@@ -93,21 +161,21 @@ export const TempCard: React.FC<TempChartProps> = ({
         <span className="stat-card-title">Temperatures</span>
       </div>
       <div className="temp-list">
-        {sensors.map((s, i) => (
+        {groupedSensors.map((group, i) => (
           <div key={i} className="temp-item">
-            <span className="temp-label">{s.label}</span>
+            <span className="temp-label">{group.label}</span>
             <span
               className="temp-value"
               style={{
                 color:
-                  s.temperature > 80
+                  group.temperature > 80
                     ? "#ef4444"
-                    : s.temperature > 60
+                    : group.temperature > 60
                       ? "#f59e0b"
                       : "#10b981",
               }}
             >
-              {s.temperature.toFixed(1)}°C
+              {group.temperature.toFixed(1)}°C
             </span>
           </div>
         ))}
