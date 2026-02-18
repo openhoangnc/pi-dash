@@ -5,7 +5,7 @@ mod models;
 mod ws;
 
 use actix_files::Files;
-use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer};
+use actix_web::{App, HttpRequest, HttpResponse, HttpServer, web};
 use log::info;
 use std::sync::Arc;
 use tokio::sync::broadcast;
@@ -24,7 +24,7 @@ async fn api_history(
 ) -> HttpResponse {
     // Check auth
     if let Some(token) = auth::extract_token(&req) {
-        if !auth.validate_token(&token) {
+        if !auth.validate_access_token(&token) {
             return HttpResponse::Unauthorized().json(serde_json::json!({"error": "Unauthorized"}));
         }
     } else {
@@ -50,7 +50,7 @@ async fn api_stats(
     collector: web::Data<Arc<Mutex<Collector>>>,
 ) -> HttpResponse {
     if let Some(token) = auth::extract_token(&req) {
-        if !auth.validate_token(&token) {
+        if !auth.validate_access_token(&token) {
             return HttpResponse::Unauthorized().json(serde_json::json!({"error": "Unauthorized"}));
         }
     } else {
@@ -131,6 +131,8 @@ async fn main() -> std::io::Result<()> {
             .app_data(ws_tx_data.clone())
             .app_data(collector_data.clone())
             .route("/api/login", web::post().to(auth::login))
+            .route("/api/refresh", web::post().to(auth::refresh))
+            .route("/api/logout", web::post().to(auth::logout))
             .route("/api/auth", web::get().to(auth::check_auth))
             .route("/api/history", web::get().to(api_history))
             .route("/api/stats", web::get().to(api_stats))
@@ -139,16 +141,12 @@ async fn main() -> std::io::Result<()> {
             .service(
                 Files::new("/", "./static")
                     .index_file("index.html")
-                    .default_handler(
-                        web::to(|| async {
-                            // SPA fallback: serve index.html for all non-API routes
-                            let index = std::fs::read_to_string("./static/index.html")
-                                .unwrap_or_else(|_| "Pi Dash - Frontend not found".to_string());
-                            HttpResponse::Ok()
-                                .content_type("text/html")
-                                .body(index)
-                        })
-                    )
+                    .default_handler(web::to(|| async {
+                        // SPA fallback: serve index.html for all non-API routes
+                        let index = std::fs::read_to_string("./static/index.html")
+                            .unwrap_or_else(|_| "Pi Dash - Frontend not found".to_string());
+                        HttpResponse::Ok().content_type("text/html").body(index)
+                    })),
             )
     })
     .bind(format!("0.0.0.0:{}", port))?

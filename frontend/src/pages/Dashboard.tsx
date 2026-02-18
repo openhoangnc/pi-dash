@@ -24,7 +24,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ token, onLogout }) => {
     data: historyData,
     loading: historyLoading,
     fetchHistory,
-  } = useHistory(token);
+  } = useHistory();
   const [historyRange, setHistoryRange] = useState<"day" | "week">("day");
   useEffect(() => {
     fetchHistory(historyRange);

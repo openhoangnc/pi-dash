@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { login as apiLogin, getAccessToken } from "../api";
 
 interface LoginProps {
   onLogin: (token: string) => void;
@@ -15,20 +16,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem("pi_dash_token", data.token);
-        onLogin(data.token);
-      } else {
-        setError("Invalid credentials");
-      }
+      await apiLogin(username, password);
+      onLogin(getAccessToken() ?? "");
     } catch {
-      setError("Connection failed");
+      setError("Invalid credentials");
     } finally {
       setLoading(false);
     }

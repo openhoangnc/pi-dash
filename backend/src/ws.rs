@@ -1,9 +1,9 @@
-use actix_web::{web, HttpRequest, HttpResponse};
+use crate::auth::{AuthConfig, extract_token};
+use actix_web::{HttpRequest, HttpResponse, web};
 use actix_ws::Message;
 use futures_util::StreamExt;
-use tokio::sync::broadcast;
 use log::{info, warn};
-use crate::auth::{AuthConfig, extract_token};
+use tokio::sync::broadcast;
 
 pub type WsBroadcast = broadcast::Sender<String>;
 
@@ -15,7 +15,7 @@ pub async fn ws_handler(
 ) -> Result<HttpResponse, actix_web::Error> {
     // Validate auth
     if let Some(token) = extract_token(&req) {
-        if !auth.validate_token(&token) {
+        if !auth.validate_access_token(&token) {
             return Ok(HttpResponse::Unauthorized().finish());
         }
     } else {
