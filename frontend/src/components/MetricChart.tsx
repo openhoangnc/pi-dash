@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from "react";
-import * as echarts from "echarts";
+import * as echarts from "../lib/echarts";
 import { HistoryPoint } from "../types";
 
 interface MetricChartProps {
