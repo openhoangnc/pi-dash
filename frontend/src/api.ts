@@ -1,34 +1,55 @@
 /**
  * api.ts — Centralised fetch wrapper with automatic token refresh.
  *
- * Access token: kept in memory only (not localStorage).
- * Refresh token: HttpOnly cookie managed by the browser / server.
+ * Both access token and refresh token are stored in localStorage.
  */
 
-let accessToken: string | null = null;
+const ACCESS_TOKEN_KEY = "pi_dash_token";
+const REFRESH_TOKEN_KEY = "pi_dash_refresh";
 
 export function setAccessToken(token: string | null) {
-  accessToken = token;
+  if (token) {
+    localStorage.setItem(ACCESS_TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+  }
 }
 
 export function getAccessToken(): string | null {
-  return accessToken;
+  return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
 
-/** Attempt to get a new access token using the refresh-token cookie. */
+export function setRefreshToken(token: string | null) {
+  if (token) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+  }
+}
+
+export function getRefreshToken(): string | null {
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
+/** Attempt to get a new access token using the stored refresh token. */
 export async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return null;
+
   try {
     const res = await fetch("/api/refresh", {
       method: "POST",
-      credentials: "include", // send the HttpOnly refresh cookie
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
     });
     if (res.ok) {
       const data = await res.json();
-      accessToken = data.token;
-      return accessToken;
+      setAccessToken(data.token);
+      setRefreshToken(data.refresh_token);
+      return data.token as string;
     }
   } catch {
-    // network error — leave token as-is
+    // network error — leave tokens as-is
   }
   return null;
 }
@@ -44,14 +65,13 @@ export async function apiFetch(
   const doFetch = (token: string | null) =>
     fetch(input, {
       ...init,
-      credentials: "include",
       headers: {
         ...(init.headers ?? {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
 
-  let res = await doFetch(accessToken);
+  let res = await doFetch(getAccessToken());
 
   if (res.status === 401) {
     // Try to refresh
@@ -64,11 +84,10 @@ export async function apiFetch(
   return res;
 }
 
-/** Log in with username/password. Stores the returned access token. */
+/** Log in with username/password. Stores both tokens in localStorage. */
 export async function login(username: string, password: string): Promise<void> {
   const res = await fetch("/api/login", {
     method: "POST",
-    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
   });
@@ -78,14 +97,16 @@ export async function login(username: string, password: string): Promise<void> {
   }
 
   const data = await res.json();
-  accessToken = data.token;
+  setAccessToken(data.token);
+  setRefreshToken(data.refresh_token);
 }
 
-/** Log out: clear in-memory token and expire the refresh cookie server-side. */
+/** Log out: clear both tokens from localStorage. */
 export async function logout(): Promise<void> {
-  accessToken = null;
+  setAccessToken(null);
+  setRefreshToken(null);
   try {
-    await fetch("/api/logout", { method: "POST", credentials: "include" });
+    await fetch("/api/logout", { method: "POST" });
   } catch {
     // best-effort
   }

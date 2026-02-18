@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CpuStats {
@@ -85,11 +85,6 @@ pub struct HistoryResponse {
 pub struct LoginRequest {
     pub username: String,
     pub password: String,
-}
-
-#[derive(Debug, Serialize)]
-pub struct LoginResponse {
-    pub token: String,
 }
 
 #[derive(Debug, Deserialize)]

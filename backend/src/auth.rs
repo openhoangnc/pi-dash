@@ -1,13 +1,38 @@
-use crate::models::{LoginRequest, LoginResponse};
-use actix_web::{HttpRequest, HttpResponse, cookie::Cookie, web};
+use crate::models::LoginRequest;
+use actix_web::{HttpRequest, HttpResponse, web};
 use chrono::Utc;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
 type HmacSha256 = Hmac<Sha256>;
 
+/// Minimal percent-decoder for URL query param values.
+fn percent_decode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let Ok(hex) = std::str::from_utf8(&bytes[i + 1..i + 3]) {
+                if let Ok(byte) = u8::from_str_radix(hex, 16) {
+                    out.push(byte as char);
+                    i += 3;
+                    continue;
+                }
+            }
+        } else if bytes[i] == b'+' {
+            out.push(' ');
+            i += 1;
+            continue;
+        }
+        out.push(bytes[i] as char);
+        i += 1;
+    }
+    out
+}
+
 /// Access token TTL: 24 hours
-const ACCESS_TOKEN_TTL_SECS: i64 = 86400 * 1;
+const ACCESS_TOKEN_TTL_SECS: i64 = 86400;
 /// Refresh token TTL: 30 days
 const REFRESH_TOKEN_TTL_SECS: i64 = 86400 * 30;
 
@@ -34,13 +59,13 @@ impl AuthConfig {
         }
     }
 
-    /// Create a short-lived access token (15 min).
+    /// Create a short-lived access token (24 hours).
     pub fn create_access_token(&self) -> String {
         let expiry = Utc::now().timestamp() + ACCESS_TOKEN_TTL_SECS;
         self.sign_token("access", expiry)
     }
 
-    /// Create a long-lived refresh token (7 days).
+    /// Create a long-lived refresh token (30 days).
     pub fn create_refresh_token(&self) -> String {
         let expiry = Utc::now().timestamp() + REFRESH_TOKEN_TTL_SECS;
         self.sign_token("refresh", expiry)
@@ -100,7 +125,7 @@ impl AuthConfig {
     }
 }
 
-/// Extract the access token from Authorization header, cookie, or query param.
+/// Extract the access token from Authorization header or query param.
 pub fn extract_token(req: &HttpRequest) -> Option<String> {
     // Check Authorization header first
     if let Some(auth) = req.headers().get("Authorization") {
@@ -110,33 +135,22 @@ pub fn extract_token(req: &HttpRequest) -> Option<String> {
             }
         }
     }
-    // Check cookie
-    if let Some(cookie) = req.cookie("pi_dash_token") {
-        return Some(cookie.value().to_string());
-    }
-    // Check query param (for WebSocket)
+    // Check query param (for WebSocket) — URL-decode the value since browsers
+    // percent-encode `:` as `%3A` in query strings.
     if let Some(query) = req.uri().query() {
         for part in query.split('&') {
-            if let Some(token) = part.strip_prefix("token=") {
-                return Some(token.to_string());
+            if let Some(encoded) = part.strip_prefix("token=") {
+                let token = percent_decode(encoded);
+                return Some(token);
             }
         }
     }
     None
 }
 
-/// Extract the refresh token from the HttpOnly cookie.
-fn extract_refresh_token(req: &HttpRequest) -> Option<String> {
-    req.cookie("pi_dash_refresh").map(|c| c.value().to_string())
-}
-
-fn make_refresh_cookie(token: &str) -> Cookie<'static> {
-    Cookie::build("pi_dash_refresh", token.to_owned())
-        .path("/api/refresh")
-        .http_only(true)
-        .same_site(actix_web::cookie::SameSite::Strict)
-        .max_age(actix_web::cookie::time::Duration::days(7))
-        .finish()
+#[derive(serde::Deserialize)]
+pub struct RefreshRequest {
+    pub refresh_token: String,
 }
 
 pub async fn login(auth: web::Data<AuthConfig>, body: web::Json<LoginRequest>) -> HttpResponse {
@@ -144,47 +158,31 @@ pub async fn login(auth: web::Data<AuthConfig>, body: web::Json<LoginRequest>) -
         let access_token = auth.create_access_token();
         let refresh_token = auth.create_refresh_token();
 
-        let refresh_cookie = make_refresh_cookie(&refresh_token);
-
-        HttpResponse::Ok()
-            .cookie(refresh_cookie)
-            .json(LoginResponse {
-                token: access_token,
-            })
+        HttpResponse::Ok().json(serde_json::json!({
+            "token": access_token,
+            "refresh_token": refresh_token,
+        }))
     } else {
         HttpResponse::Unauthorized().json(serde_json::json!({"error": "Invalid credentials"}))
     }
 }
 
-pub async fn refresh(auth: web::Data<AuthConfig>, req: HttpRequest) -> HttpResponse {
-    if let Some(refresh_token) = extract_refresh_token(&req) {
-        if auth.validate_refresh_token(&refresh_token) {
-            let new_access_token = auth.create_access_token();
-            let new_refresh_token = auth.create_refresh_token();
-            let refresh_cookie = make_refresh_cookie(&new_refresh_token);
+pub async fn refresh(auth: web::Data<AuthConfig>, body: web::Json<RefreshRequest>) -> HttpResponse {
+    if auth.validate_refresh_token(&body.refresh_token) {
+        let new_access_token = auth.create_access_token();
+        let new_refresh_token = auth.create_refresh_token();
 
-            return HttpResponse::Ok()
-                .cookie(refresh_cookie)
-                .json(LoginResponse {
-                    token: new_access_token,
-                });
-        }
+        return HttpResponse::Ok().json(serde_json::json!({
+            "token": new_access_token,
+            "refresh_token": new_refresh_token,
+        }));
     }
     HttpResponse::Unauthorized()
         .json(serde_json::json!({"error": "Invalid or expired refresh token"}))
 }
 
-pub async fn logout(_req: HttpRequest) -> HttpResponse {
-    // Expire the refresh cookie
-    let expired_cookie = Cookie::build("pi_dash_refresh", "")
-        .path("/api/refresh")
-        .http_only(true)
-        .max_age(actix_web::cookie::time::Duration::seconds(0))
-        .finish();
-
-    HttpResponse::Ok()
-        .cookie(expired_cookie)
-        .json(serde_json::json!({"ok": true}))
+pub async fn logout() -> HttpResponse {
+    HttpResponse::Ok().json(serde_json::json!({"ok": true}))
 }
 
 pub async fn check_auth(auth: web::Data<AuthConfig>, req: HttpRequest) -> HttpResponse {

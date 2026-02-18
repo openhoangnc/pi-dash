@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { login as apiLogin, getAccessToken } from "../api";
+import { login as apiLogin } from "../api";
 
 interface LoginProps {
-  onLogin: (token: string) => void;
+  onLogin: () => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ onLogin }) => {
@@ -17,7 +17,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setLoading(true);
     try {
       await apiLogin(username, password);
-      onLogin(getAccessToken() ?? "");
+      onLogin();
     } catch {
       setError("Invalid credentials");
     } finally {
