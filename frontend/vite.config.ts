@@ -15,5 +15,24 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    chunkSizeWarningLimit: 1100,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (
+            id.includes("node_modules/echarts") ||
+            id.includes("node_modules/zrender")
+          ) {
+            return "echarts";
+          }
+          if (
+            id.includes("node_modules/react") ||
+            id.includes("node_modules/react-dom")
+          ) {
+            return "react";
+          }
+        },
+      },
+    },
   },
 });
