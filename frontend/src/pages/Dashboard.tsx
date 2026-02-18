@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useHistory } from "../hooks/useHistory";
 import { StatCard } from "../components/StatCard";
@@ -26,25 +26,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ token, onLogout }) => {
     fetchHistory,
   } = useHistory(token);
   const [historyRange, setHistoryRange] = useState<"day" | "week">("day");
-  const recentTempsRef = useRef<Map<string, number[]>>(new Map());
-
   useEffect(() => {
     fetchHistory(historyRange);
     const interval = setInterval(() => fetchHistory(historyRange), 60_000);
     return () => clearInterval(interval);
   }, [historyRange, fetchHistory]);
-
-  // Track recent temperature readings for sparklines
-  useEffect(() => {
-    if (!stats) return;
-    const map = recentTempsRef.current;
-    for (const sensor of stats.temperatures) {
-      const arr = map.get(sensor.label) || [];
-      arr.push(sensor.temperature);
-      if (arr.length > 60) arr.shift();
-      map.set(sensor.label, arr);
-    }
-  }, [stats]);
 
   const cpuRecent = useMemo(
     () => recentStats.map((s) => s.cpu.usage_percent),
@@ -84,10 +70,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ token, onLogout }) => {
       </header>
 
       <div className="stats-grid">
-        <TempCard
-          sensors={stats.temperatures}
-          recentTemps={new Map(recentTempsRef.current)}
-        />
+        <TempCard sensors={stats.temperatures} />
         <StatCard
           title="CPU"
           icon="⚡"

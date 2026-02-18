@@ -330,39 +330,38 @@ body {
   grid-column: span 1;
 }
 
-.temp-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.temp-item {
+.temp-big-grid {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 8px 0 4px;
+}
+
+.temp-big-item {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 4px;
-  font-size: 11px;
+  flex: 1;
+  min-width: 80px;
 }
 
-.temp-label {
-  color: var(--text-secondary);
-  overflow: hidden;
-  /* text-overflow: ellipsis; */
-  white-space: nowrap;
-  max-width: 160px;
-}
-
-.temp-value {
-  font-weight: 600;
+.temp-big-value {
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+  text-shadow: 0 0 20px currentColor;
+  transition: color 0.4s ease;
 }
 
-.temp-chart-area {
-  width: 100%;
-  height: 100px;
+.temp-big-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-top: 4px;
 }
 
 .temp-empty {
@@ -517,8 +516,8 @@ body {
   .header-left h1 {
     font-size: 16px;
   }
-  .temp-list {
-    grid-template-columns: 1fr 1fr;
+  .temp-big-value {
+    font-size: 40px;
   }
 }
 
@@ -526,7 +525,7 @@ body {
   .login-form {
     padding: 24px 20px;
   }
-  .temp-list {
-    grid-template-columns: 1fr;
+  .temp-big-value {
+    font-size: 36px;
   }
 }

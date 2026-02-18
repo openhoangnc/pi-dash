@@ -31,7 +31,7 @@ const metricConfig = {
     max: 100,
   },
   temperature: {
-    title: "CPU Temperature",
+    title: "Temperature",
     color: "#ef4444",
     dataKey: (p: HistoryPoint) =>
       p.cpu_temp != null ? Math.round(p.cpu_temp * 10) / 10 : null,
@@ -74,6 +74,29 @@ export const MetricChart: React.FC<MetricChartProps> = ({
 
     const chartData = data.map(config.dataKey);
 
+    // Compute dynamic y-axis bounds from actual data range
+    const validValues = chartData.filter((v): v is number => v !== null);
+    let yMin = 0;
+    let yMax = config.max;
+
+    if (validValues.length > 0) {
+      const dataMin = Math.min(...validValues);
+      const dataMax = Math.max(...validValues);
+      const span = dataMax - dataMin;
+      // 10% padding on each side, at least 2 units of breathing room
+      const padding = Math.max(span * 0.1, 2);
+
+      if (metricType === "temperature") {
+        // Temperature: floor at 0°C, no hard ceiling
+        yMin = Math.max(0, Math.floor(dataMin - padding));
+        yMax = Math.ceil(dataMax + padding);
+      } else {
+        // Percentage metrics: clamp to [0, 100]
+        yMin = Math.max(0, Math.floor(dataMin - padding));
+        yMax = Math.min(100, Math.ceil(dataMax + padding));
+      }
+    }
+
     chart.setOption(
       {
         backgroundColor: "transparent",
@@ -105,8 +128,8 @@ export const MetricChart: React.FC<MetricChartProps> = ({
         },
         yAxis: {
           type: "value",
-          min: 0,
-          max: config.max,
+          min: yMin,
+          max: yMax,
           axisLabel: {
             color: "#888",
             fontSize: 10,
