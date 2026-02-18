@@ -77,7 +77,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ token, onLogout }) => {
           color="#6366f1"
           value={`${stats.cpu.usage_percent.toFixed(1)}%`}
           percent={stats.cpu.usage_percent}
-          subtitle={`${stats.cpu.count} cores · ${stats.cpu.frequency_mhz} MHz${stats.cpu.temperature != null ? ` · ${stats.cpu.temperature.toFixed(1)}°C` : ""}`}
+          subtitle={`${stats.cpu.frequency_mhz} MHz${stats.cpu.temperature != null ? ` · ${stats.cpu.temperature.toFixed(1)}°C` : ""}`}
           recentData={cpuRecent}
         />
         <StatCard

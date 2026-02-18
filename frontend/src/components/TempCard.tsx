@@ -1,62 +1,17 @@
-import React, { useMemo } from "react";
-import { TemperatureSensor } from "../types";
+import React from "react";
+import { TempGroup } from "../types";
 
-interface TempChartProps {
-  sensors: TemperatureSensor[];
-  recentTemps?: Map<string, number[]>;
+interface TempCardProps {
+  sensors: TempGroup[];
 }
 
-interface GroupedSensor {
-  label: string;
-  temperature: number;
-  sensors: TemperatureSensor[];
-}
+const getTempColor = (temp: number) => {
+  if (temp > 80) return "#ef4444";
+  if (temp > 60) return "#f59e0b";
+  return "#10b981";
+};
 
-export const TempCard: React.FC<TempChartProps> = ({ sensors }) => {
-  // Group sensors and compute max values
-  const groupedSensors = useMemo(() => {
-    const groups = new Map<string, TemperatureSensor[]>();
-
-    sensors.forEach((sensor) => {
-      const label = sensor.label.toLowerCase();
-
-      // Check if it's SOC-related (npu, core, gpu soc, center)
-      if (
-        label.includes("npu") ||
-        label.includes("core") ||
-        label.includes("gpu") ||
-        label.includes("soc") ||
-        label.includes("center")
-      ) {
-        const existing = groups.get("SOC") || [];
-        groups.set("SOC", [...existing, sensor]);
-      } else {
-        // Group by sensor type for others
-        const existing = groups.get(sensor.sensor_type) || [];
-        groups.set(sensor.sensor_type, [...existing, sensor]);
-      }
-    });
-
-    // Convert to array with max temperature
-    const result: GroupedSensor[] = [];
-    groups.forEach((sensorList, groupName) => {
-      const maxTemp = Math.max(...sensorList.map((s) => s.temperature));
-      result.push({
-        label: groupName,
-        temperature: maxTemp,
-        sensors: sensorList,
-      });
-    });
-
-    return result;
-  }, [sensors]);
-
-  const getTempColor = (temp: number) => {
-    if (temp > 80) return "#ef4444";
-    if (temp > 60) return "#f59e0b";
-    return "#10b981";
-  };
-
+export const TempCard: React.FC<TempCardProps> = ({ sensors }) => {
   return (
     <div className="stat-card temp-card">
       <div className="stat-card-header">
@@ -67,7 +22,7 @@ export const TempCard: React.FC<TempChartProps> = ({ sensors }) => {
         <div className="temp-empty">No sensors detected</div>
       ) : (
         <div className="temp-big-grid">
-          {groupedSensors.map((group, i) => (
+          {sensors.map((group, i) => (
             <div key={i} className="temp-big-item">
               <span
                 className="temp-big-value"

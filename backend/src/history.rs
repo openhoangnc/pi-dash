@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 use chrono::{DateTime, Utc, TimeDelta};
 use parking_lot::RwLock;
 use std::sync::Arc;
-use crate::models::{HistoryPoint, SystemStats, TemperatureSensor};
+use crate::models::{HistoryPoint, SystemStats, TempGroup};
 
 const RAW_RETENTION_SECS: i64 = 300; // 5 minutes of raw data
 const DAY_BUCKET_SECS: i64 = 60; // 1-minute buckets for day view
@@ -20,7 +20,7 @@ struct Bucket {
     mem_percent_sum: f64,
     disk_percent_sum: f64,
     count: u32,
-    temperatures: Vec<TemperatureSensor>,
+    temperatures: Vec<TempGroup>,
 }
 
 impl Bucket {
