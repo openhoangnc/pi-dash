@@ -44,7 +44,7 @@ const App: React.FC = () => {
     return <Login onLogin={handleLogin} />;
   }
 
-  return <Dashboard token={getAccessToken() ?? ""} onLogout={handleLogout} />;
+  return <Dashboard onLogout={handleLogout} />;
 };
 
 export default App;

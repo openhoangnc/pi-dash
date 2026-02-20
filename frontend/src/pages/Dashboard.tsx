@@ -14,12 +14,11 @@ function formatBytes(bytes: number): string {
 }
 
 interface DashboardProps {
-  token: string;
   onLogout: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ token, onLogout }) => {
-  const { stats, connected, recentStats } = useWebSocket(token);
+export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
+  const { stats, connected, recentStats } = useWebSocket();
   const {
     data: historyData,
     loading: historyLoading,
