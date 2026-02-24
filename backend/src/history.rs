@@ -1,8 +1,8 @@
-use std::collections::VecDeque;
-use chrono::{DateTime, Utc, TimeDelta};
-use parking_lot::RwLock;
-use std::sync::Arc;
 use crate::models::{HistoryPoint, SystemStats, TempGroup};
+use chrono::{DateTime, TimeDelta, Utc};
+use parking_lot::RwLock;
+use std::collections::VecDeque;
+use std::sync::Arc;
 
 const RAW_RETENTION_SECS: i64 = 300; // 5 minutes of raw data
 const DAY_BUCKET_SECS: i64 = 60; // 1-minute buckets for day view
@@ -10,7 +10,7 @@ const WEEK_BUCKET_SECS: i64 = 900; // 15-minute buckets for week view
 const DAY_RETENTION_SECS: i64 = 86400; // 24 hours
 const WEEK_RETENTION_SECS: i64 = 604800; // 7 days
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 struct Bucket {
     timestamp: DateTime<Utc>,
     cpu_percent_sum: f64,
@@ -70,6 +70,7 @@ impl Bucket {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct HistoryStoreInner {
     raw: VecDeque<HistoryPoint>,
     day_buckets: VecDeque<Bucket>,
@@ -83,12 +84,41 @@ pub struct HistoryStore {
 
 impl HistoryStore {
     pub fn new() -> Self {
+        let inner = Self::load_from_disk().unwrap_or_else(|| HistoryStoreInner {
+            raw: VecDeque::new(),
+            day_buckets: VecDeque::new(),
+            week_buckets: VecDeque::new(),
+        });
+
         HistoryStore {
-            inner: Arc::new(RwLock::new(HistoryStoreInner {
-                raw: VecDeque::new(),
-                day_buckets: VecDeque::new(),
-                week_buckets: VecDeque::new(),
-            })),
+            inner: Arc::new(RwLock::new(inner)),
+        }
+    }
+
+    fn load_from_disk() -> Option<HistoryStoreInner> {
+        let path = "/data/history.json";
+        if let Ok(content) = std::fs::read_to_string(path) {
+            if let Ok(inner) = serde_json::from_str(&content) {
+                println!("Loaded history from {}", path);
+                return Some(inner);
+            }
+        }
+        None
+    }
+
+    pub fn save_to_disk(&self) {
+        let path = "/data/history.json";
+        let inner = self.inner.read();
+        let _ = std::fs::create_dir_all("/data");
+        match serde_json::to_string(&*inner) {
+            Ok(json) => {
+                if let Err(e) = std::fs::write(path, json) {
+                    eprintln!("Failed to write history to {}: {}", path, e);
+                } else {
+                    println!("Saved history to {}", path);
+                }
+            }
+            Err(e) => eprintln!("Failed to serialize history: {}", e),
         }
     }
 

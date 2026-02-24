@@ -12,5 +12,9 @@ services:
     # Required to read host system stats
     privileged: true
     volumes:
+      - pi-dash-data:/data
       - /sys:/sys:ro
       - /proc:/proc:ro
+
+volumes:
+  pi-dash-data:

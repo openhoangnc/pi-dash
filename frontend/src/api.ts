@@ -32,26 +32,40 @@ export function getRefreshToken(): string | null {
 }
 
 /** Attempt to get a new access token using the stored refresh token. */
+let refreshPromise: Promise<string | null> | null = null;
+
 export async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return null;
 
-  try {
-    const res = await fetch("/api/refresh", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setAccessToken(data.token);
-      setRefreshToken(data.refresh_token);
-      return data.token as string;
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch("/api/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAccessToken(data.token);
+        setRefreshToken(data.refresh_token);
+        return data.token as string;
+      } else {
+        // Refresh token invalid or expired; clear tokens
+        setAccessToken(null);
+        setRefreshToken(null);
+      }
+    } catch {
+      // network error — leave tokens as-is
+    } finally {
+      refreshPromise = null;
     }
-  } catch {
-    // network error — leave tokens as-is
-  }
-  return null;
+    return null;
+  })();
+
+  return refreshPromise;
 }
 
 /**
@@ -78,6 +92,9 @@ export async function apiFetch(
     const newToken = await refreshAccessToken();
     if (newToken) {
       res = await doFetch(newToken);
+    } else {
+      // If refresh failed, reload the page to transition to the login screen
+      window.location.reload();
     }
   }
 

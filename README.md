@@ -24,6 +24,7 @@ Real-time server monitoring dashboard for Raspberry Pi, Orange Pi, and other SBC
 docker run -d \
   --name pi-dash \
   --privileged \
+  -v pi-dash-data:/data \
   -v /sys:/sys:ro \
   -v /proc:/proc:ro \
   -p 3300:3300 \
@@ -50,8 +51,12 @@ services:
     restart: unless-stopped
     privileged: true
     volumes:
+      - pi-dash-data:/data
       - /sys:/sys:ro
       - /proc:/proc:ro
+
+volumes:
+  pi-dash-data:
 ```
 
 ## Configuration

@@ -46,15 +46,32 @@ pub struct AuthConfig {
 impl AuthConfig {
     pub fn from_env() -> Self {
         let secret = std::env::var("PI_DASH_SECRET").unwrap_or_else(|_| {
+            let secret_path = "/data/secret.txt";
+            if let Ok(existing_secret) = std::fs::read_to_string(secret_path) {
+                let trimmed = existing_secret.trim().to_string();
+                if !trimmed.is_empty() {
+                    return trimmed;
+                }
+            }
+
             use rand::Rng;
             let mut rng = rand::thread_rng();
             let bytes: Vec<u8> = (0..32).map(|_| rng.r#gen()).collect();
-            hex::encode(bytes)
+            let new_secret = hex::encode(bytes);
+
+            let _ = std::fs::create_dir_all("/data");
+            if let Err(e) = std::fs::write(secret_path, &new_secret) {
+                eprintln!("Failed to write generated secret to {}: {}", secret_path, e);
+            } else {
+                println!("Generated and saved new secret to {}", secret_path);
+            }
+
+            new_secret
         });
 
         AuthConfig {
             username: std::env::var("PI_DASH_USER").unwrap_or_else(|_| "admin".to_string()),
-            password: std::env::var("PI_DASH_PASS").unwrap_or_else(|_| "admin".to_string()),
+            password: std::env::var("PI_DASH_PASS").unwrap_or_else(|_| "CHANGEME".to_string()),
             secret,
         }
     }

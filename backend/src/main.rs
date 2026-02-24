@@ -120,11 +120,11 @@ async fn main() -> std::io::Result<()> {
     });
 
     let auth_data = web::Data::new(auth_config);
-    let history_data = web::Data::new(history);
+    let history_data = web::Data::new(history.clone());
     let ws_tx_data = web::Data::new(ws_tx);
     let collector_data = web::Data::new(collector);
 
-    HttpServer::new(move || {
+    let server = HttpServer::new(move || {
         App::new()
             .app_data(auth_data.clone())
             .app_data(history_data.clone())
@@ -150,6 +150,10 @@ async fn main() -> std::io::Result<()> {
             )
     })
     .bind(format!("0.0.0.0:{}", port))?
-    .run()
-    .await
+    .run();
+
+    let res = server.await;
+    println!("Shutting down, saving history data to disk...");
+    history.save_to_disk();
+    res
 }
