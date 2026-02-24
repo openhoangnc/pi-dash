@@ -11,6 +11,7 @@ export default defineConfig({
         ws: true,
       },
     },
+    port: 3341,
   },
   build: {
     outDir: "dist",
