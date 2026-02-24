@@ -124,6 +124,15 @@ async fn main() -> std::io::Result<()> {
     let ws_tx_data = web::Data::new(ws_tx);
     let collector_data = web::Data::new(collector);
 
+    // Background save task (every 10 minutes)
+    let save_history = history.clone();
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(tokio::time::Duration::from_secs(600)).await;
+            save_history.save_to_disk();
+        }
+    });
+
     let server = HttpServer::new(move || {
         App::new()
             .app_data(auth_data.clone())

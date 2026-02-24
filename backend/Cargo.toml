@@ -21,6 +21,7 @@ env_logger = "0.11"
 log = "0.4"
 rand = "0.8"
 futures-util = "0.3"
+zstd = "0.13.3"
 
 [profile.release]
 opt-level = "z"

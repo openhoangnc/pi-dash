@@ -96,10 +96,20 @@ impl HistoryStore {
     }
 
     fn load_from_disk() -> Option<HistoryStoreInner> {
-        let path = "/data/history.json";
-        if let Ok(content) = std::fs::read_to_string(path) {
+        let path = "/data/history.json.zst";
+        if let Ok(content) = std::fs::read(path) {
+            if let Ok(decompressed) = zstd::decode_all(content.as_slice()) {
+                if let Ok(inner) = serde_json::from_slice(&decompressed) {
+                    println!("Loaded compressed history from {}", path);
+                    return Some(inner);
+                }
+            }
+        }
+
+        let legacy_path = "/data/history.json";
+        if let Ok(content) = std::fs::read_to_string(legacy_path) {
             if let Ok(inner) = serde_json::from_str(&content) {
-                println!("Loaded history from {}", path);
+                println!("Loaded history from {}", legacy_path);
                 return Some(inner);
             }
         }
@@ -107,17 +117,20 @@ impl HistoryStore {
     }
 
     pub fn save_to_disk(&self) {
-        let path = "/data/history.json";
+        let path = "/data/history.json.zst";
         let inner = self.inner.read();
         let _ = std::fs::create_dir_all("/data");
-        match serde_json::to_string(&*inner) {
-            Ok(json) => {
-                if let Err(e) = std::fs::write(path, json) {
-                    eprintln!("Failed to write history to {}: {}", path, e);
-                } else {
-                    println!("Saved history to {}", path);
+        match serde_json::to_vec(&*inner) {
+            Ok(json) => match zstd::encode_all(json.as_slice(), 3) {
+                Ok(compressed) => {
+                    if let Err(e) = std::fs::write(path, compressed) {
+                        eprintln!("Failed to write history to {}: {}", path, e);
+                    } else {
+                        println!("Saved history to {}", path);
+                    }
                 }
-            }
+                Err(e) => eprintln!("Failed to compress history: {}", e),
+            },
             Err(e) => eprintln!("Failed to serialize history: {}", e),
         }
     }
