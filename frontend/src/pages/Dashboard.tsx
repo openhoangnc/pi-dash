@@ -117,9 +117,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
             </button>
           </div>
         </div>
-        {historyLoading && <div className="history-loading">Loading...</div>}
         {historyData && historyData.points.length > 0 && (
-          <HistoryCharts data={historyData.points} range={historyRange} />
+          <HistoryCharts
+            data={historyData.points}
+            range={historyRange}
+            loading={historyLoading}
+          />
         )}
         {historyData && historyData.points.length === 0 && (
           <div className="history-empty">

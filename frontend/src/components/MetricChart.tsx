@@ -6,6 +6,7 @@ interface MetricChartProps {
   data: HistoryPoint[];
   range: string;
   metricType: "cpu" | "memory" | "disk" | "temperature";
+  loading: boolean;
 }
 
 const metricConfig = {
@@ -44,6 +45,7 @@ export const MetricChart: React.FC<MetricChartProps> = ({
   data,
   range,
   metricType,
+  loading,
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts>(null);
@@ -113,7 +115,7 @@ export const MetricChart: React.FC<MetricChartProps> = ({
         grid: {
           top: 40,
           right: 16,
-          bottom: 30,
+          bottom: 40,
           left: 50,
         },
         xAxis: {
@@ -122,7 +124,7 @@ export const MetricChart: React.FC<MetricChartProps> = ({
           axisLabel: {
             color: "#888",
             fontSize: 10,
-            rotate: range === "week" ? 30 : 0,
+            rotate: 30,
           },
           axisLine: { lineStyle: { color: "#333" } },
         },
@@ -179,5 +181,40 @@ export const MetricChart: React.FC<MetricChartProps> = ({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  return <div ref={chartRef} className="metric-chart" />;
+  return (
+    <div style={{ position: "relative" }}>
+      <div ref={chartRef} className="metric-chart" />
+      {loading && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0, 0, 0, 0.04)",
+            backdropFilter: "blur(2px)",
+            borderRadius: "inherit",
+            zIndex: 10,
+          }}
+        >
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              border: "3px solid rgba(255,255,255,0.15)",
+              borderTopColor: "#6366f1",
+              borderRadius: "50%",
+              animation: "metric-chart-spin 0.25s linear infinite",
+            }}
+          />
+          <style>{`
+            @keyframes metric-chart-spin {
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      )}
+    </div>
+  );
 };

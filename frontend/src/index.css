@@ -454,7 +454,6 @@ body {
   height: 220px;
 }
 
-.history-loading,
 .history-empty {
   text-align: center;
   color: var(--text-muted);

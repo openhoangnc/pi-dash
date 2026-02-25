@@ -69,11 +69,13 @@ const aggregateData = (data: HistoryPoint[]): HistoryPoint[] => {
 interface HistoryChartsProps {
   data: HistoryPoint[];
   range: string;
+  loading: boolean;
 }
 
 export const HistoryCharts: React.FC<HistoryChartsProps> = ({
   data,
   range,
+  loading,
 }) => {
   const aggregatedData = useMemo(() => aggregateData(data), [data]);
 
@@ -88,17 +90,33 @@ export const HistoryCharts: React.FC<HistoryChartsProps> = ({
             data={aggregatedData}
             range={range}
             metricType="temperature"
+            loading={loading}
           />
         </div>
       )}
       <div className="metric-chart-wrapper">
-        <MetricChart data={aggregatedData} range={range} metricType="cpu" />
+        <MetricChart
+          data={aggregatedData}
+          range={range}
+          metricType="cpu"
+          loading={loading}
+        />
       </div>
       <div className="metric-chart-wrapper">
-        <MetricChart data={aggregatedData} range={range} metricType="memory" />
+        <MetricChart
+          data={aggregatedData}
+          range={range}
+          metricType="memory"
+          loading={loading}
+        />
       </div>
       <div className="metric-chart-wrapper">
-        <MetricChart data={aggregatedData} range={range} metricType="disk" />
+        <MetricChart
+          data={aggregatedData}
+          range={range}
+          metricType="disk"
+          loading={loading}
+        />
       </div>
     </div>
   );
