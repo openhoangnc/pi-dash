@@ -91,6 +91,7 @@ export const HistoryCharts: React.FC<HistoryChartsProps> = ({
             range={range}
             metricType="temperature"
             loading={loading}
+            groupId="history-charts"
           />
         </div>
       )}
@@ -100,6 +101,7 @@ export const HistoryCharts: React.FC<HistoryChartsProps> = ({
           range={range}
           metricType="cpu"
           loading={loading}
+          groupId="history-charts"
         />
       </div>
       <div className="metric-chart-wrapper">
@@ -108,6 +110,7 @@ export const HistoryCharts: React.FC<HistoryChartsProps> = ({
           range={range}
           metricType="memory"
           loading={loading}
+          groupId="history-charts"
         />
       </div>
       <div className="metric-chart-wrapper">
@@ -116,6 +119,7 @@ export const HistoryCharts: React.FC<HistoryChartsProps> = ({
           range={range}
           metricType="disk"
           loading={loading}
+          groupId="history-charts"
         />
       </div>
     </div>

@@ -7,6 +7,7 @@ interface MetricChartProps {
   range: string;
   metricType: "cpu" | "memory" | "disk" | "temperature";
   loading: boolean;
+  groupId?: string;
 }
 
 const metricConfig = {
@@ -46,6 +47,7 @@ export const MetricChart: React.FC<MetricChartProps> = ({
   range,
   metricType,
   loading,
+  groupId,
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts>(null);
@@ -55,6 +57,10 @@ export const MetricChart: React.FC<MetricChartProps> = ({
 
     if (!chartInstance.current) {
       chartInstance.current = echarts.init(chartRef.current, "dark");
+      if (groupId) {
+        chartInstance.current.group = groupId;
+        echarts.connect(groupId);
+      }
     }
 
     const chart = chartInstance.current;
