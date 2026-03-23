@@ -7,14 +7,8 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: Build Backend (statically linked with musl for scratch compatibility)
-FROM --platform=$BUILDPLATFORM rust:1.93-bookworm AS backend-builder
+FROM --platform=$BUILDPLATFORM ghcr.io/rust-cross/cargo-zigbuild:latest AS backend-builder
 WORKDIR /app/backend
-
-# Install python3, pip, and cargo-zigbuild (which uses zig as a C cross-compiler)
-RUN apt-get update && apt-get install -y --no-install-recommends python3-pip && \
-    pip3 install cargo-zigbuild ziglang --break-system-packages && \
-    rm -rf /var/lib/apt/lists/*
-
 # Map Docker TARGETARCH to Rust target triple
 ARG TARGETARCH
 RUN if [ "$TARGETARCH" = "amd64" ]; then \
