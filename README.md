@@ -101,6 +101,8 @@ Browser ←→ Actix-Web (single port)
              ├── REST /api/login (auth)
              └── Background collector (1s interval)
                   ├── sysinfo (CPU, Memory, Disk)
+                  ├── /proc/net/dev (Network speed)
+                  ├── /proc/diskstats (Disk I/O)
                   ├── /sys/class/hwmon/* (temperatures)
                   └── History store (raw → 1min → 15min)
 ```
