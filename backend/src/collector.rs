@@ -238,7 +238,12 @@ impl Collector {
         let mut current_rx: u64 = 0;
         let mut current_tx: u64 = 0;
         
-        if let Ok(content) = fs::read_to_string("/proc/net/dev") {
+        // /proc/1/net/dev reads PID-1's (host) network namespace, which is correct
+        // when running inside a Docker container with /proc bind-mounted from the host.
+        // Falls back to /proc/net/dev when running directly on the host.
+        let net_dev = fs::read_to_string("/proc/1/net/dev")
+            .or_else(|_| fs::read_to_string("/proc/net/dev"));
+        if let Ok(content) = net_dev {
             for line in content.lines().skip(2) {
                 if let Some((iface, stats)) = line.split_once(':') {
                     let iface = iface.trim();
