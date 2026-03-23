@@ -11,7 +11,7 @@ Real-time server monitoring dashboard for Raspberry Pi, Orange Pi, and other SBC
 
 ## Features
 
-- **Live monitoring** — CPU, Memory, Disk, Temperature streamed via WebSocket (1s updates)
+- **Live monitoring** — CPU, Memory, Disk, Network, Disk I/O, Temperature streamed via WebSocket (1s updates)
 - **All temperature sensors** — Scans `/sys/class/hwmon/` for complete coverage
 - **History charts** — 24-hour and 7-day views with automatic aggregation
 - **Compact dark UI** — Mobile-responsive dashboard with ECharts
@@ -110,6 +110,8 @@ Browser ←→ Actix-Web (single port)
 - **CPU**: Usage %, frequency, core count, temperature
 - **Memory**: Usage %, available %, total, free
 - **Disk**: Usage %, used, available, total
+- **Network**: Rx/Tx speed (B/s, KB/s, MB/s)
+- **Disk I/O**: Read/Write speed (B/s, KB/s, MB/s)
 - **Temperature**: All sensors from `/sys/class/hwmon/`
 
 ## License
