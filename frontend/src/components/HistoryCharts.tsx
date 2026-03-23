@@ -25,6 +25,10 @@ const aggregateData = (data: HistoryPoint[]): HistoryPoint[] => {
     let cpuTempCount = 0;
     let sumMemPercent = 0;
     let sumDiskPercent = 0;
+    let sumNetRx = 0;
+    let sumNetTx = 0;
+    let sumDiskRead = 0;
+    let sumDiskWrite = 0;
     const tempMap = new Map<string, { sum: number; count: number }>();
 
     for (const point of chunk) {
@@ -36,6 +40,10 @@ const aggregateData = (data: HistoryPoint[]): HistoryPoint[] => {
       }
       sumMemPercent += point.mem_percent;
       sumDiskPercent += point.disk_percent;
+      sumNetRx += point.network_rx_bytes_sec || 0;
+      sumNetTx += point.network_tx_bytes_sec || 0;
+      sumDiskRead += point.disk_read_bytes_sec || 0;
+      sumDiskWrite += point.disk_write_bytes_sec || 0;
 
       for (const t of point.temperatures) {
         const existing = tempMap.get(t.label) ?? { sum: 0, count: 0 };
@@ -59,6 +67,10 @@ const aggregateData = (data: HistoryPoint[]): HistoryPoint[] => {
       cpu_temp: cpuTempCount > 0 ? sumCpuTemp / cpuTempCount : null,
       mem_percent: sumMemPercent / count,
       disk_percent: sumDiskPercent / count,
+      network_rx_bytes_sec: sumNetRx / count,
+      network_tx_bytes_sec: sumNetTx / count,
+      disk_read_bytes_sec: sumDiskRead / count,
+      disk_write_bytes_sec: sumDiskWrite / count,
       temperatures: aggregatedTemps,
     });
   }
@@ -118,6 +130,42 @@ export const HistoryCharts: React.FC<HistoryChartsProps> = ({
           data={aggregatedData}
           range={range}
           metricType="disk"
+          loading={loading}
+          groupId="history-charts"
+        />
+      </div>
+      <div className="metric-chart-wrapper">
+        <MetricChart
+          data={aggregatedData}
+          range={range}
+          metricType="network_rx"
+          loading={loading}
+          groupId="history-charts"
+        />
+      </div>
+      <div className="metric-chart-wrapper">
+        <MetricChart
+          data={aggregatedData}
+          range={range}
+          metricType="network_tx"
+          loading={loading}
+          groupId="history-charts"
+        />
+      </div>
+      <div className="metric-chart-wrapper">
+        <MetricChart
+          data={aggregatedData}
+          range={range}
+          metricType="disk_read"
+          loading={loading}
+          groupId="history-charts"
+        />
+      </div>
+      <div className="metric-chart-wrapper">
+        <MetricChart
+          data={aggregatedData}
+          range={range}
+          metricType="disk_write"
           loading={loading}
           groupId="history-charts"
         />

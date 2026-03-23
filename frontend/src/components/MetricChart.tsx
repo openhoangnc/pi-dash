@@ -5,7 +5,7 @@ import { HistoryPoint } from "../types";
 interface MetricChartProps {
   data: HistoryPoint[];
   range: string;
-  metricType: "cpu" | "memory" | "disk" | "temperature";
+  metricType: "cpu" | "memory" | "disk" | "temperature" | "network_rx" | "network_tx" | "disk_read" | "disk_write";
   loading: boolean;
   groupId?: string;
 }
@@ -39,6 +39,34 @@ const metricConfig = {
       p.cpu_temp != null ? Math.round(p.cpu_temp * 10) / 10 : null,
     unit: "°C",
     max: 100,
+  },
+  network_rx: {
+    title: "Network Rx",
+    color: "#3b82f6",
+    dataKey: (p: HistoryPoint) => p.network_rx_bytes_sec || 0,
+    unit: "B/s",
+    max: 0,
+  },
+  network_tx: {
+    title: "Network Tx",
+    color: "#8b5cf6",
+    dataKey: (p: HistoryPoint) => p.network_tx_bytes_sec || 0,
+    unit: "B/s",
+    max: 0,
+  },
+  disk_read: {
+    title: "Disk Read",
+    color: "#ec4899",
+    dataKey: (p: HistoryPoint) => p.disk_read_bytes_sec || 0,
+    unit: "B/s",
+    max: 0,
+  },
+  disk_write: {
+    title: "Disk Write",
+    color: "#14b8a6",
+    dataKey: (p: HistoryPoint) => p.disk_write_bytes_sec || 0,
+    unit: "B/s",
+    max: 0,
   },
 };
 
@@ -98,6 +126,10 @@ export const MetricChart: React.FC<MetricChartProps> = ({
         // Temperature: floor at 0°C, no hard ceiling
         yMin = Math.max(0, Math.floor(dataMin - padding));
         yMax = Math.ceil(dataMax + padding);
+      } else if (config.unit === "B/s") {
+        // Network/Disk: floor at 0, no hard ceiling
+        yMin = 0;
+        yMax = Math.ceil(dataMax + padding);
       } else {
         // Percentage metrics: clamp to [0, 100]
         yMin = Math.max(0, Math.floor(dataMin - padding));
@@ -115,7 +147,14 @@ export const MetricChart: React.FC<MetricChartProps> = ({
           textStyle: { color: "#e0e0e0", fontSize: 11 },
           formatter: (params: any) => {
             const value = params[0].value;
-            return `${params[0].axisValueLabel}<br/>${config.title}: <strong>${value !== null ? value + config.unit : "N/A"}</strong>`;
+            let formattedValue = value !== null ? value + config.unit : "N/A";
+            if (value !== null && config.unit === "B/s") {
+              if (value >= 1073741824) formattedValue = (value / 1073741824).toFixed(2) + ' GB/s';
+              else if (value >= 1048576) formattedValue = (value / 1048576).toFixed(2) + ' MB/s';
+              else if (value >= 1024) formattedValue = (value / 1024).toFixed(2) + ' KB/s';
+              else formattedValue = value.toFixed(0) + ' B/s';
+            }
+            return `${params[0].axisValueLabel}<br/>${config.title}: <strong>${formattedValue}</strong>`;
           },
         },
         grid: {
@@ -141,7 +180,15 @@ export const MetricChart: React.FC<MetricChartProps> = ({
           axisLabel: {
             color: "#888",
             fontSize: 10,
-            formatter: `{value}${config.unit}`,
+            formatter: (value: number) => {
+              if (config.unit === "B/s") {
+                if (value >= 1073741824) return (value / 1073741824).toFixed(1) + ' GB/s';
+                if (value >= 1048576) return (value / 1048576).toFixed(1) + ' MB/s';
+                if (value >= 1024) return (value / 1024).toFixed(1) + ' KB/s';
+                return value.toFixed(0) + ' B/s';
+              }
+              return `${value}${config.unit}`;
+            },
           },
           splitLine: { lineStyle: { color: "#222" } },
         },

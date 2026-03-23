@@ -5,11 +5,12 @@ import { SystemStats } from "../types";
 interface StatCardProps {
   title: string;
   value: string;
-  percent: number;
+  percent?: number;
   subtitle?: string;
   icon: string;
   color: string;
   recentData?: number[];
+  maxLimit?: number | "auto";
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -20,6 +21,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   icon,
   color,
   recentData,
+  maxLimit = 100,
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts>(null);
@@ -39,7 +41,12 @@ export const StatCard: React.FC<StatCardProps> = ({
           type: "category",
           data: recentData?.map((_, i) => i) || [],
         },
-        yAxis: { show: false, type: "value", min: 0, max: 100 },
+        yAxis: {
+          show: false,
+          type: "value",
+          min: 0,
+          max: maxLimit === "auto" ? undefined : maxLimit,
+        },
         series: [
           {
             type: "line",
@@ -68,7 +75,6 @@ export const StatCard: React.FC<StatCardProps> = ({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const clampedPercent = Math.min(100, Math.max(0, percent));
 
   return (
     <div className="stat-card">
@@ -78,12 +84,17 @@ export const StatCard: React.FC<StatCardProps> = ({
       </div>
       <div className="stat-card-value">{value}</div>
       {subtitle && <div className="stat-card-subtitle">{subtitle}</div>}
-      <div className="stat-card-bar">
-        <div
-          className="stat-card-bar-fill"
-          style={{ width: `${clampedPercent}%`, backgroundColor: color }}
-        />
-      </div>
+      {percent !== undefined && (
+        <div className="stat-card-bar">
+          <div
+            className="stat-card-bar-fill"
+            style={{
+              width: `${Math.min(100, Math.max(0, percent))}%`,
+              backgroundColor: color,
+            }}
+          />
+        </div>
+      )}
       <div className="stat-card-sparkline" ref={chartRef} />
     </div>
   );

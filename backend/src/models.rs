@@ -24,6 +24,18 @@ pub struct DiskStats {
     pub total_bytes: u64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NetworkStats {
+    pub rx_bytes_per_sec: u64,
+    pub tx_bytes_per_sec: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiskIoStats {
+    pub read_bytes_per_sec: u64,
+    pub write_bytes_per_sec: u64,
+}
+
 /// A pre-grouped temperature reading sent over the wire.
 /// The server applies the same grouping logic that was previously in TempCard.tsx.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,6 +59,8 @@ pub struct SystemStats {
     pub cpu: CpuStats,
     pub memory: MemoryStats,
     pub disk: DiskStats,
+    pub network: NetworkStats,
+    pub disk_io: DiskIoStats,
     pub temperatures: Vec<TempGroup>,
 }
 
@@ -58,6 +72,10 @@ pub struct HistoryPoint {
     pub cpu_temp: Option<f32>,
     pub mem_percent: f32,
     pub disk_percent: f32,
+    pub network_rx_bytes_sec: u64,
+    pub network_tx_bytes_sec: u64,
+    pub disk_read_bytes_sec: u64,
+    pub disk_write_bytes_sec: u64,
     pub temperatures: Vec<TempGroup>,
 }
 
@@ -70,6 +88,10 @@ impl From<&SystemStats> for HistoryPoint {
             cpu_temp: s.cpu.temperature,
             mem_percent: s.memory.usage_percent,
             disk_percent: s.disk.usage_percent,
+            network_rx_bytes_sec: s.network.rx_bytes_per_sec,
+            network_tx_bytes_sec: s.network.tx_bytes_per_sec,
+            disk_read_bytes_sec: s.disk_io.read_bytes_per_sec,
+            disk_write_bytes_sec: s.disk_io.write_bytes_per_sec,
             temperatures: s.temperatures.clone(),
         }
     }

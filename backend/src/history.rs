@@ -19,6 +19,10 @@ struct Bucket {
     cpu_temp_count: u32,
     mem_percent_sum: f64,
     disk_percent_sum: f64,
+    network_rx_sum: u64,
+    network_tx_sum: u64,
+    disk_read_sum: u64,
+    disk_write_sum: u64,
     count: u32,
     temperatures: Vec<TempGroup>,
 }
@@ -33,6 +37,10 @@ impl Bucket {
             cpu_temp_count: 0,
             mem_percent_sum: 0.0,
             disk_percent_sum: 0.0,
+            network_rx_sum: 0,
+            network_tx_sum: 0,
+            disk_read_sum: 0,
+            disk_write_sum: 0,
             count: 0,
             temperatures: Vec::new(),
         }
@@ -47,6 +55,10 @@ impl Bucket {
         }
         self.mem_percent_sum += point.mem_percent as f64;
         self.disk_percent_sum += point.disk_percent as f64;
+        self.network_rx_sum += point.network_rx_bytes_sec;
+        self.network_tx_sum += point.network_tx_bytes_sec;
+        self.disk_read_sum += point.disk_read_bytes_sec;
+        self.disk_write_sum += point.disk_write_bytes_sec;
         self.count += 1;
         // Keep the latest temperature readings
         self.temperatures = point.temperatures.clone();
@@ -54,10 +66,11 @@ impl Bucket {
 
     fn to_history_point(&self) -> HistoryPoint {
         let n = self.count.max(1) as f64;
+        let n_u64 = self.count.max(1) as u64;
         HistoryPoint {
             timestamp: self.timestamp,
             cpu_percent: (self.cpu_percent_sum / n) as f32,
-            cpu_freq: self.cpu_freq_sum / self.count.max(1) as u64,
+            cpu_freq: self.cpu_freq_sum / n_u64,
             cpu_temp: if self.cpu_temp_count > 0 {
                 Some((self.cpu_temp_sum / self.cpu_temp_count as f64) as f32)
             } else {
@@ -65,6 +78,10 @@ impl Bucket {
             },
             mem_percent: (self.mem_percent_sum / n) as f32,
             disk_percent: (self.disk_percent_sum / n) as f32,
+            network_rx_bytes_sec: self.network_rx_sum / n_u64,
+            network_tx_bytes_sec: self.network_tx_sum / n_u64,
+            disk_read_bytes_sec: self.disk_read_sum / n_u64,
+            disk_write_bytes_sec: self.disk_write_sum / n_u64,
             temperatures: self.temperatures.clone(),
         }
     }

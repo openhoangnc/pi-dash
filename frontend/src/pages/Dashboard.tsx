@@ -43,6 +43,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
     () => recentStats.map((s) => s.disk.usage_percent),
     [recentStats],
   );
+  const netRxRecent = useMemo(
+    () => recentStats.map((s) => s.network.rx_bytes_per_sec),
+    [recentStats],
+  );
+  const diskReadRecent = useMemo(
+    () => recentStats.map((s) => s.disk_io.read_bytes_per_sec),
+    [recentStats],
+  );
 
   if (!stats) {
     return (
@@ -96,6 +104,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
           percent={stats.disk.usage_percent}
           subtitle={`${formatBytes(stats.disk.used_bytes)} / ${formatBytes(stats.disk.total_bytes)} · ${formatBytes(stats.disk.available_bytes)} avail`}
           recentData={diskRecent}
+        />
+        <StatCard
+          title="Network"
+          icon="🌐"
+          color="#3b82f6"
+          value={`${formatBytes(stats.network.rx_bytes_per_sec)}/s ↓`}
+          subtitle={`${formatBytes(stats.network.tx_bytes_per_sec)}/s ↑`}
+          recentData={netRxRecent}
+          maxLimit="auto"
+        />
+        <StatCard
+          title="Disk I/O"
+          icon="💽"
+          color="#ec4899"
+          value={`${formatBytes(stats.disk_io.read_bytes_per_sec)}/s R`}
+          subtitle={`${formatBytes(stats.disk_io.write_bytes_per_sec)}/s W`}
+          recentData={diskReadRecent}
+          maxLimit="auto"
         />
       </div>
 

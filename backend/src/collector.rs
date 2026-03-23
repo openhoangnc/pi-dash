@@ -1,14 +1,24 @@
 use std::fs;
 use std::path::Path;
 use std::collections::HashMap;
+use std::time::Instant;
 use sysinfo::{System, Disks, Components};
-use crate::models::{CpuStats, MemoryStats, DiskStats, SystemStats, TemperatureSensor, TempGroup};
+use crate::models::{CpuStats, MemoryStats, DiskStats, SystemStats, TemperatureSensor, TempGroup, NetworkStats, DiskIoStats};
 use chrono::Utc;
+
+struct ProcStats {
+    timestamp: Instant,
+    net_rx: u64,
+    net_tx: u64,
+    disk_read: u64,
+    disk_write: u64,
+}
 
 pub struct Collector {
     sys: System,
     disks: Disks,
     components: Components,
+    last_proc_stats: Option<ProcStats>,
 }
 
 impl Collector {
@@ -17,7 +27,7 @@ impl Collector {
         sys.refresh_all();
         let disks = Disks::new_with_refreshed_list();
         let components = Components::new_with_refreshed_list();
-        Collector { sys, disks, components }
+        Collector { sys, disks, components, last_proc_stats: None }
     }
 
     pub fn collect(&mut self) -> SystemStats {
@@ -31,11 +41,15 @@ impl Collector {
         let raw_temps = self.collect_temperatures();
         let temperatures = group_temperatures(raw_temps);
 
+        let (network, disk_io) = self.collect_proc_stats();
+
         SystemStats {
             timestamp: Utc::now(),
             cpu,
             memory,
             disk,
+            network,
+            disk_io,
             temperatures,
         }
     }
@@ -195,6 +209,83 @@ impl Collector {
         }
 
         sensors
+    }
+
+    fn collect_proc_stats(&mut self) -> (NetworkStats, DiskIoStats) {
+        let mut current_rx = 0;
+        let mut current_tx = 0;
+        
+        if let Ok(content) = fs::read_to_string("/proc/net/dev") {
+            for line in content.lines().skip(2) {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 10 {
+                    let rx: u64 = parts[1].parse().unwrap_or(0);
+                    let tx: u64 = parts[9].parse().unwrap_or(0);
+                    current_rx += rx;
+                    current_tx += tx;
+                }
+            }
+        }
+
+        let mut current_disk_read = 0;
+        let mut current_disk_write = 0;
+
+        if let Ok(content) = fs::read_to_string("/proc/diskstats") {
+            for line in content.lines() {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 14 {
+                    // /proc/diskstats fields:
+                    // 2: device name
+                    // 5: sectors read
+                    // 9: sectors written
+                    // Linux sector size is usually 512 bytes
+                    let dev_name = parts[2];
+                    if !dev_name.starts_with("loop") && !dev_name.starts_with("ram") {
+                        let sectors_read: u64 = parts[5].parse().unwrap_or(0);
+                        let sectors_written: u64 = parts[9].parse().unwrap_or(0);
+                        current_disk_read += sectors_read * 512;
+                        current_disk_write += sectors_written * 512;
+                    }
+                }
+            }
+        }
+
+        let now = Instant::now();
+        let mut rx_bps = 0;
+        let mut tx_bps = 0;
+        let mut read_bps = 0;
+        let mut write_bps = 0;
+
+        if let Some(last) = &self.last_proc_stats {
+            let elapsed = now.duration_since(last.timestamp).as_secs_f64();
+            if elapsed > 0.0 {
+                if current_rx >= last.net_rx {
+                    rx_bps = ((current_rx - last.net_rx) as f64 / elapsed) as u64;
+                }
+                if current_tx >= last.net_tx {
+                    tx_bps = ((current_tx - last.net_tx) as f64 / elapsed) as u64;
+                }
+                if current_disk_read >= last.disk_read {
+                    read_bps = ((current_disk_read - last.disk_read) as f64 / elapsed) as u64;
+                }
+                if current_disk_write >= last.disk_write {
+                    write_bps = ((current_disk_write - last.disk_write) as f64 / elapsed) as u64;
+                }
+            }
+        }
+
+        self.last_proc_stats = Some(ProcStats {
+            timestamp: now,
+            net_rx: current_rx,
+            net_tx: current_tx,
+            disk_read: current_disk_read,
+            disk_write: current_disk_write,
+        });
+
+        (
+            NetworkStats { rx_bytes_per_sec: rx_bps, tx_bytes_per_sec: tx_bps },
+            DiskIoStats { read_bytes_per_sec: read_bps, write_bytes_per_sec: write_bps }
+        )
     }
 }
 

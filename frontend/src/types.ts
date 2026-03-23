@@ -24,11 +24,23 @@ export interface DiskStats {
   total_bytes: number;
 }
 
+export interface NetworkStats {
+  rx_bytes_per_sec: number;
+  tx_bytes_per_sec: number;
+}
+
+export interface DiskIoStats {
+  read_bytes_per_sec: number;
+  write_bytes_per_sec: number;
+}
+
 export interface SystemStats {
   timestamp: string;
   cpu: CpuStats;
   memory: MemoryStats;
   disk: DiskStats;
+  network: NetworkStats;
+  disk_io: DiskIoStats;
   temperatures: TempGroup[];
 }
 
@@ -39,6 +51,10 @@ export interface HistoryPoint {
   cpu_temp: number | null;
   mem_percent: number;
   disk_percent: number;
+  network_rx_bytes_sec: number;
+  network_tx_bytes_sec: number;
+  disk_read_bytes_sec: number;
+  disk_write_bytes_sec: number;
   temperatures: TempGroup[];
 }
 
