@@ -217,12 +217,27 @@ impl Collector {
         
         if let Ok(content) = fs::read_to_string("/proc/net/dev") {
             for line in content.lines().skip(2) {
-                let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() >= 10 {
-                    let rx: u64 = parts[1].parse().unwrap_or(0);
-                    let tx: u64 = parts[9].parse().unwrap_or(0);
-                    current_rx += rx;
-                    current_tx += tx;
+                if let Some((iface, stats)) = line.split_once(':') {
+                    let iface = iface.trim();
+                    // Ignore loopback and virtual/docker interfaces to prevent double counting
+                    if iface == "lo" 
+                        || iface.starts_with("veth") 
+                        || iface.starts_with("docker") 
+                        || iface.starts_with("br-")
+                        || iface.starts_with("flannel") 
+                        || iface.starts_with("cni")
+                        || iface.starts_with("wg")
+                    {
+                        continue;
+                    }
+                    let parts: Vec<&str> = stats.split_whitespace().collect();
+                    if parts.len() >= 16 {
+                        // rx_bytes is at index 0, tx_bytes is at index 8 of the stats part
+                        let rx: u64 = parts[0].parse().unwrap_or(0);
+                        let tx: u64 = parts[8].parse().unwrap_or(0);
+                        current_rx += rx;
+                        current_tx += tx;
+                    }
                 }
             }
         }
