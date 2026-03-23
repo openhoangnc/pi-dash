@@ -235,8 +235,8 @@ impl Collector {
     }
 
     fn collect_proc_stats(&mut self) -> (NetworkStats, DiskIoStats) {
-        let mut current_rx = 0;
-        let mut current_tx = 0;
+        let mut current_rx: u64 = 0;
+        let mut current_tx: u64 = 0;
         
         if let Ok(content) = fs::read_to_string("/proc/net/dev") {
             for line in content.lines().skip(2) {
@@ -269,8 +269,8 @@ impl Collector {
             }
         }
 
-        let mut current_disk_read = 0;
-        let mut current_disk_write = 0;
+        let mut current_disk_read: u64 = 0;
+        let mut current_disk_write: u64 = 0;
 
         if let Ok(content) = fs::read_to_string("/proc/diskstats") {
             for line in content.lines() {
